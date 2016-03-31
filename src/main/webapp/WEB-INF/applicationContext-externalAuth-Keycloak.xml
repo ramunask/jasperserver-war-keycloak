@@ -14,7 +14,10 @@
 	<context:component-scan base-package="org.keycloak.adapters.springsecurity" />
 
 	<bean id="keycloakPreAuthActionsFilter" name="proxyPreAuthenticatedProcessingFilter"
-		class="org.keycloak.adapters.springsecurity.filter.KeycloakPreAuthActionsFilter" />
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.filters.keycloak.JSKeycloakPreAuthActionsFilter">
+		<constructor-arg name="realmQueryParamName" value="realm" />
+		<constructor-arg name="realmCookieName" value="realm" />
+	</bean>
 
 	<bean id="keycloakAuthenticationProcessingFilter" name="proxyAuthenticationProcessingFilter"
 		class="org.keycloak.adapters.springsecurity.filter.KeycloakAuthenticationProcessingFilter">
@@ -136,10 +139,21 @@
 		<constructor-arg ref="adapterDeploymentContext" />
 	</bean>
 
-	<!-- Reference: http://keycloak.github.io/docs/userguide/keycloak-server/html/ch08.html#adapter-config -->
 	<bean id="adapterDeploymentContext"
 		class="org.keycloak.adapters.springsecurity.AdapterDeploymentContextFactoryBean">
-		<constructor-arg value="/WEB-INF/keycloak.json" />
+		<constructor-arg ref="configResolver" />
 	</bean>
+
+	<bean id="configResolver"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.adapters.keycloak.JSKeycloakConfigResolver">
+		<constructor-arg name="realmCookieName" value="realm" />
+		<constructor-arg name="keycloakConfigFileResources">
+			<map>
+				<entry key="master" value="/WEB-INF/master.json" />
+				<entry key="slave" value="/WEB-INF/slave.json" />
+			</map>
+		</constructor-arg>
+	</bean>
+	<!-- Reference: http://keycloak.github.io/docs/userguide/keycloak-server/html/ch08.html#adapter-config -->
 
 </beans>
