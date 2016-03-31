@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/security
+       http://www.springframework.org/schema/security/spring-security.xsd">
+
+	<context:component-scan base-package="org.keycloak.adapters.springsecurity" />
+
+	<bean id="keycloakPreAuthActionsFilter" name="proxyPreAuthenticatedProcessingFilter"
+		class="org.keycloak.adapters.springsecurity.filter.KeycloakPreAuthActionsFilter" />
+
+	<bean id="keycloakAuthenticationProcessingFilter" name="proxyAuthenticationProcessingFilter"
+		class="org.keycloak.adapters.springsecurity.filter.KeycloakAuthenticationProcessingFilter">
+		<constructor-arg name="authenticationManager" ref="keycloakAuthenticationManager" />
+		<property name="sessionAuthenticationStrategy" ref="sessionAuthenticationStrategy" />
+		<property name="authenticationFailureHandler" ref="failureHandler" />
+		<property name="authenticationSuccessHandler" ref="externalAuthSuccessHandler" />
+	</bean>
+
+	<bean id="keycloakAuthenticationManager"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.wrappers.spring.JSProviderManager">
+		<property name="providers">
+			<list>
+				<ref bean="keycloakAuthenticationProvider" />
+				<ref bean="${bean.daoAuthenticationProvider}" />
+				<!-- anonymousAuthenticationProvider only needed if filterInvocationInterceptor.alwaysReauthenticate 
+					is set to true <ref bean="anonymousAuthenticationProvider"/> -->
+			</list>
+		</property>
+	</bean>
+
+	<bean id="sessionAuthenticationStrategy"
+		class="org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy">
+		<constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+	</bean>
+
+	<bean id="keycloakAuthenticationProvider"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.wrappers.spring.keycloak.JSKeycloakAuthenticationProvider" />
+
+	<bean id="externalAuthSuccessHandler"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.keycloak.JrsExternalKeycloakAuthenticationSuccessHandler"
+		parent="successHandler">
+		<property name="externalDataSynchronizer">
+			<ref bean="externalDataSynchronizer" />
+		</property>
+	</bean>
+
+	<bean id="externalDataSynchronizer"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.ExternalDataSynchronizerImpl">
+		<property name="externalUserProcessors">
+			<list>
+				<ref bean="externalUserSetupProcessor" />
+				<!-- Example processor for creating user folder -->
+				<!--<ref local="externalUserFolderProcessor"/> -->
+			</list>
+		</property>
+	</bean>
+
+	<bean id="abstractExternalProcessor"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.processors.AbstractExternalUserProcessor"
+		abstract="true">
+		<property name="repositoryService" ref="${bean.repositoryService}" />
+		<property name="userAuthorityService" ref="${bean.userAuthorityService}" />
+		<property name="tenantService" ref="${bean.tenantService}" />
+		<property name="profileAttributeService" ref="profileAttributeService" />
+		<property name="objectPermissionService" ref="objectPermissionService" />
+	</bean>
+
+	<bean id="externalUserSetupProcessor"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.processors.keycloak.KeycloakUserSetupProcessor"
+		parent="abstractExternalProcessor">
+		<!--Default permitted role characters; others are removed. Change regular 
+			expression to allow other chars. <property name="permittedExternalRoleNameRegex" 
+			value="[A-Za-z0-9_]+"/> -->
+		<property name="userAuthorityService">
+			<ref bean="${bean.internalUserAuthorityService}" />
+		</property>
+		<property name="defaultInternalRoles">
+			<list>
+				<value>ROLE_USER</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="externalUserFolderProcessor"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.processors.ExternalUserFolderProcessor"
+		parent="abstractExternalProcessor">
+		<property name="repositoryService" ref="${bean.unsecureRepositoryService}" />
+	</bean>
+
+	<bean id="proxyExceptionTranslationFilter"
+		class="com.jaspersoft.jasperserver.api.security.externalAuth.wrappers.spring.JSExceptionTranslationFilter">
+		<property name="authenticationEntryPoint" ref="keycloakAuthenticationEntryPoint" />
+		<property name="accessDeniedHandler">
+			<bean
+				class="com.jaspersoft.jasperserver.war.themes.ThemeAwareAccessDeniedHandlerImpl">
+				<property name="errorPage"
+					value="/WEB-INF/jsp/modules/system/AccessDeniedPage.jsp" />
+				<property name="themeResolver" ref="themeResolver" />
+				<property name="themeSource" ref="themeSource" />
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="keycloakAuthenticationEntryPoint"
+		class="org.keycloak.adapters.springsecurity.authentication.KeycloakAuthenticationEntryPoint" />
+
+	<bean id="logoutFilter" name="casSingleSignOutFilter"
+		class="org.springframework.security.web.authentication.logout.LogoutFilter">
+		<constructor-arg name="logoutSuccessUrl" value="/" />
+		<constructor-arg name="handlers">
+			<list>
+				<ref bean="keycloakLogoutHandler" />
+				<bean
+					class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler" />
+			</list>
+		</constructor-arg>
+		<property name="logoutRequestMatcher">
+			<bean
+				class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<constructor-arg name="pattern" value="/exituser**" />
+				<constructor-arg name="httpMethod" value="GET" />
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="keycloakLogoutHandler"
+		class="org.keycloak.adapters.springsecurity.authentication.KeycloakLogoutHandler">
+		<constructor-arg ref="adapterDeploymentContext" />
+	</bean>
+
+	<!-- Reference: http://keycloak.github.io/docs/userguide/keycloak-server/html/ch08.html#adapter-config -->
+	<bean id="adapterDeploymentContext"
+		class="org.keycloak.adapters.springsecurity.AdapterDeploymentContextFactoryBean">
+		<constructor-arg value="/WEB-INF/keycloak.json" />
+	</bean>
+
+</beans>

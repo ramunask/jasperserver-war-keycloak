@@ -1,0 +1,20 @@
+{
+	"realm" : "master",
+	"resource" : "jasperserver",
+	"realm-public-key" : "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8sLOyF8SQVn5N0/I3lQW9QARFVLNWLeoUDxDtQo+QShwTxcxBqEac96G5lxzMJ9m5Wl9wlMjAtiHtpMo3v7v195tg8rj4oD2cXtIphhOW6VEHowIhdHf7NzTtbORbmZwX+MxSlARswY1pmETLhUMexvImJY+ViUpOk6UMNsMxGlip+LREzAciKAAT4dirYt6/we16hT6mHl5CjxyXd8GRqZAhP/5KxW1di2f6wyyJ+i+1ONfubBM2LZmAK4GQURj6rzA/wy1dQPSRzgwn0h+2B6VU5AX35bP12XwiEnkyyI6imx7E9abHy2kBFAeGZTuIS6zUHntI/ksU/29O7s7xQIDAQAB",
+	"auth-server-url" : "http://localhost:8090/auth",
+	"ssl-required" : "none",
+	"use-resource-role-mappings" : false,
+	"enable-cors" : true,
+	"cors-max-age" : 1000,
+	"cors-allowed-methods" : "POST, PUT, DELETE, GET",
+	"bearer-only" : false,
+	"enable-basic-auth" : false,
+	"expose-token" : true,
+	"credentials" : {
+		"secret" : "8fe713d2-9ddc-417d-b2a8-c2591647b25a"
+	},
+	"connection-pool-size" : 20,
+	"disable-trust-manager" : false,
+	"allow-any-hostname" : false
+}
